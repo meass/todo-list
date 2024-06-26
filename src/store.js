@@ -1,43 +1,65 @@
-import { reactive } from 'vue'
-import { ref } from 'vue'
+import { reactive, onMounted, provide, inject } from 'vue'
 
-export const store = reactive({
-  label: ref(''),
-  leftItems: ref(0),
-  todoList: [],
-  addTodoList(label) {
-    if (!label.trim()) return //prevent adding empty todo
-    const id = new Date().valueOf()
-    this.todoList.push({ id, label, isCompleted: false })
-    this.label = ''
-    this.saveTodoListToStorage()
-  },
-  saveTodoListToStorage() {
-    localStorage.setItem('todoList', JSON.stringify(this.todoList))
-    this.calculateRemainingItems()
-  },
-  getTodoListFromStorage() {
-    this.todoList = JSON.parse(localStorage.getItem('todoList') || '[]')
-  },
-  toggleTodoListCompletion(todoId) {
-    const todoItem = this.todoList.find((todo) => todo.id === todoId)
-    if (todoItem) {
-      todoItem.isCompleted = !todoItem.isCompleted
-      this.saveTodoListToStorage()
-      this.calculateRemainingItems()
-    }
-  },
-  removeTodoFromList(todoId) {
-    this.todoList = this.todoList.filter((todo) => todo.id !== todoId)
-    this.saveTodoListToStorage()
-  },
-  calculateRemainingItems() {
-    this.leftItems = store.todoList.filter((todo) => !todo.isCompleted).length
-  },
-  removeCompletedItem() {
-    if (this.todoList) {
-      this.todoList = this.todoList.filter((todo) => !todo.isCompleted)
-      this.saveTodoListToStorage()
-    }
+const todoList = reactive([])
+
+const loadTodoListFromStorage = () => {
+  const storedTodoList = JSON.parse(localStorage.getItem('todoList') || '[]')
+  todoList.splice(0, todoList.length, ...storedTodoList) // Clear and replace
+}
+
+const saveTodoListToStorage = () => {
+  localStorage.setItem('todoList', JSON.stringify(todoList))
+}
+
+const addTodoList = (label) => {
+  if (!label.trim()) return
+  const id = new Date().valueOf()
+  const todoItem = { id, label, isCompleted: false }
+  todoList.push(todoItem)
+  saveTodoListToStorage()
+}
+
+const toggleTodoListCompletion = (todoId) => {
+  const todoItem = todoList.find((todo) => todo.id === todoId)
+  if (todoItem) {
+    todoItem.isCompleted = !todoItem.isCompleted
+    saveTodoListToStorage()
   }
-})
+}
+
+const removeTodoFromList = (todoId) => {
+  const index = todoList.findIndex((todo) => todo.id === todoId)
+  if (index !== -1) {
+    todoList.splice(index, 1)
+    saveTodoListToStorage()
+  }
+}
+
+const removeCompletedItem = () => {
+  todoList.splice(0, todoList.length, ...todoList.filter((todo) => !todo.isCompleted)) // Filter and replace
+  saveTodoListToStorage()
+}
+
+export const provideStore = () => {
+  provide('store', {
+    todoList,
+    removeCompletedItem,
+    removeTodoFromList,
+    addTodoList,
+    toggleTodoListCompletion
+  })
+}
+
+export const useStore = () => {
+  const store = inject('store')
+
+  onMounted(() => {
+    loadTodoListFromStorage()
+  })
+
+  if (!store) {
+    throw new Error('useStore must be used within a component wrapped with provideStore.')
+  }
+
+  return store
+}

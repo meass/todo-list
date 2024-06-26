@@ -1,13 +1,20 @@
 <script setup>
-import { store } from '../store'
+import { useStore } from '@/store'
+import { ref } from 'vue'
 
-store.getTodoListFromStorage()
+const label = ref('')
+const { addTodoList } = useStore()
+
+function submit() {
+  addTodoList(label.value)
+  label.value = ''
+}
 </script>
 
 <template>
-  <form @submit.prevent="store.addTodoList(store.label)">
+  <form @submit.prevent="submit">
     <div class="input-container">
-      <input type="text" placeholder="Create a new todo..." v-model="store.label" />
+      <input type="text" placeholder="Create a new todo..." v-model="label" />
       <input type="submit" value="add task" />
     </div>
   </form>

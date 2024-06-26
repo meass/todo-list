@@ -1,6 +1,9 @@
 <script setup>
 import FormAddTodoList from './components/FormAddTodoList.vue'
 import ListTodoItem from './components/ListTodoItem.vue'
+import { provideStore } from '@/store'
+
+provideStore()
 </script>
 
 <template>
